@@ -42,6 +42,7 @@ if __name__ == '__main__':
     dir_path = 'data/LibriSpeech/dev-clean/'
     X, Y, freq = get_data(dir_path)
     short_x = tf.ragged.constant(X[0:20])
+    print("Done getting data")
 
     tfidf = TfidfVectorizer()
     docs = [''.join(x[0]) for x in Y]
@@ -50,6 +51,8 @@ if __name__ == '__main__':
 
     test_y = tfidf.transform(docs)
     targets = test_y.toarray()
+
+    print("Making x and y complete")
 
     input1 = Input(shape=(None,), ragged=True)
     x = Embedding(8173, 2703)(input1)
