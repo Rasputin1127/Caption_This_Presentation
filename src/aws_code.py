@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     tfidf = TfidfVectorizer()
     # docs = [''.join(x[0]) for x in Y]
-    tfidf.fit(docs)
+    tfidf.fit(X)
     vocab = tfidf.get_feature_names()
 
     test_y = tfidf.transform(docs)
