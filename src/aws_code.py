@@ -50,7 +50,7 @@ if __name__ == '__main__':
     tfidf.fit(Y)
     vocab = tfidf.get_feature_names()
 
-    test_y = tfidf.transform(docs)
+    test_y = tfidf.transform(Y)
     targets = test_y.toarray()
 
     print("Making x and y complete")
