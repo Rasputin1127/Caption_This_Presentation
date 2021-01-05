@@ -42,10 +42,11 @@ if __name__ == '__main__':
     dir_path = 'data/LibriSpeech/dev-clean/'
     X, Y, freq = get_data(dir_path)
     short_x = tf.ragged.constant(X[0:20])
+    print('Y: ' + f'{Y[0]}')
     print("Done getting data")
 
     tfidf = TfidfVectorizer()
-    docs = [''.join(x[0]) for x in Y]
+    # docs = [''.join(x[0]) for x in Y]
     tfidf.fit(docs)
     vocab = tfidf.get_feature_names()
 
