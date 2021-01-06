@@ -45,10 +45,13 @@ def get_data(dir_path, new_sr = 8000, final_length = 100000):
 
 if __name__ == '__main__':
     dir_path = '../data/LibriSpeech/dev-clean/'
-    X, Y, freq = get_data(dir_path)
-    
-    print('Y: ' + f'{Y[0]}')
-    print("Done getting data")
+    _, Y, freq = get_data(dir_path)
+
+    with open('variables.pkl', 'rb') as f:
+        X,_ = pickle.load(f)
+
+#    print('Y: ' + f'{Y[0]}')
+#    print("Done getting data")
 
     tfidf = TfidfVectorizer()
     # docs = [''.join(x[0]) for x in Y]
@@ -66,57 +69,59 @@ if __name__ == '__main__':
                                             random_state=777,
                                             shuffle=True)
 
-    K.clear_session()
+    with tf.device('/:XLA_GPU:0'):
 
-    inputs = Input(shape=(100000,1))
+        K.clear_session()
 
-    #First Conv1D layer
-    conv = Conv1D(8,13, padding='valid', activation='relu', strides=1)(inputs)
-    conv = MaxPooling1D(3)(conv)
-    conv = Dropout(0.2)(conv)
+        inputs = Input(shape=(100000,1))
 
-    #Second Conv1D layer
-    conv = Conv1D(16, 11, padding='valid', activation='relu', strides=1)(conv)
-    conv = MaxPooling1D(3)(conv)
-    conv = Dropout(0.2)(conv)
+        #First Conv1D layer
+        conv = Conv1D(8,13, padding='valid', activation='relu', strides=1)(inputs)
+        conv = MaxPooling1D(3)(conv)
+        conv = Dropout(0.2)(conv)
 
-    #Third Conv1D layer
-    conv = Conv1D(32, 9, padding='valid', activation='relu', strides=1)(conv)
-    conv = MaxPooling1D(3)(conv)
-    conv = Dropout(0.2)(conv)
+        #Second Conv1D layer
+        conv = Conv1D(16, 11, padding='valid', activation='relu', strides=1)(conv)
+        conv = MaxPooling1D(3)(conv)
+        conv = Dropout(0.2)(conv)
 
-    #Fourth Conv1D layer
-    conv = Conv1D(64, 7, padding='valid', activation='relu', strides=1)(conv)
-    conv = MaxPooling1D(3)(conv)
-    conv = Dropout(0.2)(conv)
+        #Third Conv1D layer
+        conv = Conv1D(32, 9, padding='valid', activation='relu', strides=1)(conv)
+        conv = MaxPooling1D(3)(conv)
+        conv = Dropout(0.2)(conv)
 
-    #Flatten layer
-    conv = Flatten()(conv)
+        #Fourth Conv1D layer
+        conv = Conv1D(64, 7, padding='valid', activation='relu', strides=1)(conv)
+        conv = MaxPooling1D(3)(conv)
+        conv = Dropout(0.2)(conv)
 
-    #Dense Layer 1
-    conv = Dense(256, activation='relu')(conv)
-    conv = Dropout(0.3)(conv)
+        #Flatten layer
+        conv = Flatten()(conv)
 
-    #Dense Layer 2
-    conv = Dense(128, activation='relu')(conv)
-    conv = Dropout(0.3)(conv)
+        #Dense Layer 1
+        conv = Dense(256, activation='relu')(conv)
+        conv = Dropout(0.3)(conv)
 
-    outputs = Dense(len(vocab), activation='softmax')(conv)
+        #Dense Layer 2
+        conv = Dense(128, activation='relu')(conv)
+        conv = Dropout(0.3)(conv)
 
-    model = Model(inputs, outputs)
-    model.summary()
+        outputs = Dense(len(vocab), activation='softmax')(conv)
 
-    model.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])
+        model = Model(inputs, outputs)
+        model.summary()
 
-    es = EarlyStopping(monitor='val_loss',
-                   mode='min', 
-                   verbose=1, 
-                   patience=50, 
-                   min_delta=0.0001)
-    mc = ModelCheckpoint('best_model.hdf5',
-                        monitor='val_acc',
-                        verbose=1,
-                        save_best_only=True,
-                        mode='max')
+        model.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])
 
-    history = model.fit(x_tr, y_tr ,epochs=1000, callbacks=[es,mc], batch_size=32, validation_data=(x_val, y_val))
+        es = EarlyStopping(monitor='val_loss',
+                        mode='min', 
+                        verbose=1, 
+                        patience=50, 
+                        min_delta=0.0001)
+        mc = ModelCheckpoint('best_model.hdf5',
+                            monitor='val_accuracy',
+                            verbose=1,
+                            save_best_only=True,
+                            mode='max')
+
+        history = model.fit(x_tr, y_tr ,epochs=1000, callbacks=[es,mc], batch_size=32, validation_data=(x_val, y_val))
