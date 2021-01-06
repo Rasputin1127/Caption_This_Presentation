@@ -52,10 +52,10 @@ if __name__ == '__main__':
 
     tfidf = TfidfVectorizer()
     # docs = [''.join(x[0]) for x in Y]
-    tfidf.fit(Y[0:20])
+    tfidf.fit(Y)
     vocab = tfidf.get_feature_names()
 
-    test_y = tfidf.transform(Y[0:20])
+    test_y = tfidf.transform(Y)
     targets = test_y.toarray()
 
     print("Making x and y complete")
