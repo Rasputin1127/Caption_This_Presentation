@@ -9,8 +9,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import tensorflow as tf
 from scipy.signal import spectrogram
 from tensorflow import keras
-from tensorflow.keras.layers import BatchNormalization, SimpleRNN, Input, TimeDistributed, Dense, Embedding, LSTM
 from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv1D, Input, MaxPooling1D
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras import backend as K
+from sklearn.model_selection import train_test_split
 import librosa
 
 
@@ -43,7 +46,7 @@ def get_data(dir_path, new_sr = 8000, final_length = 100000):
 if __name__ == '__main__':
     dir_path = 'data/LibriSpeech/dev-clean/'
     X, Y, freq = get_data(dir_path)
-    short_x = X[0:20]
+    
     print('Y: ' + f'{Y[0]}')
     print("Done getting data")
 
@@ -57,10 +60,63 @@ if __name__ == '__main__':
 
     print("Making x and y complete")
 
-    input1 = Input(shape=(None,1))
-    x = LSTM(64)(input1)
-    out = Dense(len(vocab), activation='softmax')(x)
-    model = Model(inputs=[input1], outputs=[out])
-    model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
-    
-    history = model.fit(short_x, targets[0:20], epochs=10, batch_size = 32, verbose=1)
+    x_tr, x_val, y_tr, y_val = train_test_split(X,
+                                            targets,
+                                            test_size = 0.2,
+                                            random_state=777,
+                                            shuffle=True)
+
+    K.clear_session()
+
+    inputs = Input(shape=(100000,1))
+
+    #First Conv1D layer
+    conv = Conv1D(8,13, padding='valid', activation='relu', strides=1)(inputs)
+    conv = MaxPooling1D(3)(conv)
+    conv = Dropout(0.2)(conv)
+
+    #Second Conv1D layer
+    conv = Conv1D(16, 11, padding='valid', activation='relu', strides=1)(conv)
+    conv = MaxPooling1D(3)(conv)
+    conv = Dropout(0.2)(conv)
+
+    #Third Conv1D layer
+    conv = Conv1D(32, 9, padding='valid', activation='relu', strides=1)(conv)
+    conv = MaxPooling1D(3)(conv)
+    conv = Dropout(0.2)(conv)
+
+    #Fourth Conv1D layer
+    conv = Conv1D(64, 7, padding='valid', activation='relu', strides=1)(conv)
+    conv = MaxPooling1D(3)(conv)
+    conv = Dropout(0.2)(conv)
+
+    #Flatten layer
+    conv = Flatten()(conv)
+
+    #Dense Layer 1
+    conv = Dense(256, activation='relu')(conv)
+    conv = Dropout(0.3)(conv)
+
+    #Dense Layer 2
+    conv = Dense(128, activation='relu')(conv)
+    conv = Dropout(0.3)(conv)
+
+    outputs = Dense(len(vocab), activation='softmax')(conv)
+
+    model = Model(inputs, outputs)
+    model.summary()
+
+    model.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])
+
+    es = EarlyStopping(monitor='val_loss',
+                   mode='min', 
+                   verbose=1, 
+                   patience=50, 
+                   min_delta=0.0001)
+    mc = ModelCheckpoint('best_model.hdf5',
+                        monitor='val_acc',
+                        verbose=1,
+                        save_best_only=True,
+                        mode='max')
+
+    history = model.fit(x_tr, y_tr ,epochs=1000, callbacks=[es,mc], batch_size=32, validation_data=(x_val, y_val))
