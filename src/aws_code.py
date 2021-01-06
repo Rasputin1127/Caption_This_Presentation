@@ -44,7 +44,7 @@ def get_data(dir_path, new_sr = 8000, final_length = 100000):
 
 
 if __name__ == '__main__':
-    dir_path = 'data/LibriSpeech/dev-clean/'
+    dir_path = '../data/LibriSpeech/dev-clean/'
     X, Y, freq = get_data(dir_path)
     
     print('Y: ' + f'{Y[0]}')
