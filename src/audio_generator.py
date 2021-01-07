@@ -44,9 +44,10 @@ class DataGenerator(tf.keras.utils.Sequence):
         for i, (path, label) in enumerate(zip(wav_paths, labels)):
             rate, wav = librosa.load(path)
             resamp = librosa.resample(rate, wav, self.sr)
-            fix_length_samp = librosa.util.fix_length(resamp, 100000)
+            fix_length_samp = librosa.util.fix_length(resamp, 40000)
             X[i,] = fix_length_samp.reshape(-1, 1)
             Y[i,] = label
+            
 
         return X, Y
 
@@ -56,17 +57,28 @@ class DataGenerator(tf.keras.utils.Sequence):
         if self.shuffle:
             np.random.shuffle(self.indexes)
 
-def get_wav_paths(wav_dir):
+
+def get_wav_paths(wav_dir, clip):
     all_wav = []
+    mask = []
+    idx = 0
     for item in os.walk(wav_dir):
         if item[2]:
             for rec in item[2]:
                 if rec.endswith('.wav'):
                         wav = item[0] + '/' + rec
-                        all_wav.append(wav)
-    return all_wav
+                        sig, freq = librosa.load(wav)
+                        if len(sig)/freq > clip:
+                            idx += 1
+                        else:
+                            all_wav.append(wav)
+                            mask.append(idx)
+                            idx += 1
 
-def get_labels(dir_path):
+    return all_wav, mask
+
+def get_labels(dir_path, mask):
+    docs = []
     y = []
     for item in os.walk(dir_path):
         if item[2]:
@@ -76,7 +88,9 @@ def get_labels(dir_path):
                     obj = file.readlines()
                     for _ in obj:
                         text = _.split(maxsplit=1)[1].rstrip('\r\n')
-                        y.append(text)
+                        docs.append(text)
+    for i in mask:
+        y.append(docs[i])
     tfidf = TfidfVectorizer()
     y_fit = tfidf.fit_transform(y)
     vocab = tfidf.get_feature_names()

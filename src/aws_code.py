@@ -10,70 +10,42 @@ import tensorflow as tf
 from scipy.signal import spectrogram
 from tensorflow import keras
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv1D, Input, MaxPooling1D
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv1D, Input, MaxPooling1D, GRU
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras import backend as K
 from sklearn.model_selection import train_test_split
 import librosa
+from audio_generator import DataGenerator, get_wav_paths, get_labels
 
 
-def get_data(dir_path, new_sr = 8000, final_length = 100000):
-    samps = []
-    y = []
-    x = []
-    for item in os.walk(dir_path):
-        if item[2]:
-            for rec in item[2]:
-                if rec.endswith('.wav'):
-                        samp, sig = librosa.load(item[0] + '/' + rec)
-                        resamp = librosa.resample(samp, 16000, new_sr)
-                        fix_length_samp = librosa.util.fix_length(resamp, final_length)
-                        samps.append(fix_length_samp)
-                elif rec.endswith('.txt'):
-                    file = open(f'{item[0]}/' + rec)
-                    obj = file.readlines()
-                    for _ in obj:
-                        text = _.split(maxsplit=1)[1].rstrip('\r\n')
-                        y.append(text)
-#     for item1,item2 in zip(sigs,samps):
-#         x.append([item1[0:-1], item2])
-#     y = np.array(y).reshape(-1,1)
-    x = np.array(samps)
-    samp_freq = new_sr
-    return x, y, samp_freq
 
 
 if __name__ == '__main__':
     dir_path = '../data/LibriSpeech/dev-clean/'
-    _, Y, freq = get_data(dir_path)
+    all_wavs, mask = get_wav_paths(dir_path, 5)
+    labels, vocab = get_labels(dir_path, mask)
+    
+    with open('paths.pkl', 'wb') as f:
+        pickle.dump([all_wavs, mask])
 
-    with open('variables.pkl', 'rb') as f:
-        X,_ = pickle.load(f)
+    datagen = DataGenerator(all_wavs, labels, 8000, 5, len(vocab), batch_size=32, shuffle=True)
 
-#    print('Y: ' + f'{Y[0]}')
-#    print("Done getting data")
-
-    tfidf = TfidfVectorizer()
-    # docs = [''.join(x[0]) for x in Y]
-    tfidf.fit(Y)
-    vocab = tfidf.get_feature_names()
-
-    test_y = tfidf.transform(Y)
-    targets = test_y.toarray()
+    # with open('variables.pkl', 'rb') as f:
+        # X,_ = pickle.load(f)
 
     print("Making x and y complete")
 
-    x_tr, x_val, y_tr, y_val = train_test_split(X,
-                                            targets,
-                                            test_size = 0.2,
-                                            random_state=777,
-                                            shuffle=True)
+    # x_tr, x_val, y_tr, y_val = train_test_split(X,
+                                            # targets,
+                                            # test_size = 0.2,
+                                            # random_state=777,
+                                            # shuffle=True)
 
     with tf.device('/:XLA_GPU:0'):
 
         K.clear_session()
 
-        inputs = Input(shape=(100000,1))
+        inputs = Input(shape=(40000,1))
 
         #First Conv1D layer
         conv = Conv1D(8,13, padding='valid', activation='relu', strides=1)(inputs)
@@ -124,4 +96,4 @@ if __name__ == '__main__':
                             save_best_only=True,
                             mode='max')
 
-        history = model.fit(x_tr, y_tr ,epochs=1000, callbacks=[es,mc], batch_size=32, validation_data=(x_val, y_val))
+        history = model.fit(datagen, epochs=1000, callbacks=[es,mc], batch_size=32, verbose=1)
