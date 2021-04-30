@@ -30,6 +30,8 @@ As mentioned, this project relies on transfer learning, but it also uses several
 (Credit)
 * Michael Phi's A Hacker's Voice Recognition Assistant (https://github.com/LearnedVector/A-Hackers-AI-Voice-Assistant)
 
+The directories for these repos are included in this repo, but for better use it is advised to clone the repos directly to your system outside of the directory where you clone this repo. I will come back and polish up this repo one day soon, but for now it contains all relevant libraries and code used to develop the project! Note that several substantial changes are made to files in Michael Phi's transfer learned model because I encountered numerous dependency errors and run-time errors when trying to get the model running.
+
 ### Step 3 (optional): Record Your Voice
 
 Using Mimic Recording Studio, I fine-tuned the pretrained model on about an hour of my own voice (which with augmentation was really much more than that) to improve performance. I am certain that if you capture more than an hour of your own voice, you will see even better performance than my own implementation.
