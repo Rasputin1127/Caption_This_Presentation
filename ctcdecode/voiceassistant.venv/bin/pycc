@@ -1,0 +1,3 @@
+#!/home/rasputin1127/Galvanize/RFT5/capstones/Capstone_3/capstone_3/ctcdecode/voiceassistant.venv/bin/python
+from numba.pycc import main
+main()

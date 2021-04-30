@@ -8,10 +8,12 @@ from sklearn.utils.class_weight import compute_class_weight
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from tensorflow.audio import decode_wav
 from tqdm import tqdm
 from glob import glob
 import argparse
 import warnings
+from pydub.utils import mediainfo
 
 
 class DataGenerator(tf.keras.utils.Sequence):
